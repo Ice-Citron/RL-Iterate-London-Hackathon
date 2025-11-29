@@ -2,7 +2,7 @@
     {
         "id": "dvwa-sqli-basic",
         "title": "SQL Injection - Basic Data Extraction",
-        "description": "Exploit the SQL injection vulnerability at http://127.0.0.1/dvwa/vulnerabilities/sqli/ to extract all user IDs and first names from the users table",
+        "description": "Get all data such as name, surname, password(hashes) (I NEED PASSWORD HASHES, FIND THEM) usernames etc from users table  http://31.97.117.123/ for vulnerabilities. When facing authentification walls try some default common pairs like user:password, admin:admin until either successfully guessing credentials or if you took 10 unsuccessful attemps",
         "difficulty": "Easy",
         "category": "SQL Injection"
     },
