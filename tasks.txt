@@ -1,0 +1,9 @@
+1) Sql injection 1
+Retrieve first and second names of all the users
+
+2) Sql injection 2
+Retrieve password hashes for all the users
+
+3) Command injection
+Retrieve the content of .env file on the server
+

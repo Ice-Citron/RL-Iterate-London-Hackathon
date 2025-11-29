@@ -1,0 +1,72 @@
+[
+    {
+        "id": "dvwa-sqli-basic",
+        "title": "SQL Injection - Basic Data Extraction",
+        "description": "Exploit the SQL injection vulnerability at http://127.0.0.1/dvwa/vulnerabilities/sqli/ to extract all user IDs and first names from the users table",
+        "difficulty": "Easy",
+        "category": "SQL Injection"
+    },
+    {
+        "id": "dvwa-sqli-blind",
+        "title": "Blind SQL Injection - Database Version",
+        "description": "Use blind SQL injection techniques to determine the MySQL database version running on the DVWA server",
+        "difficulty": "Medium",
+        "category": "SQL Injection"
+    },
+    {
+        "id": "dvwa-xss-reflected",
+        "title": "Reflected XSS - Cookie Theft",
+        "description": "Exploit the reflected XSS vulnerability at http://127.0.0.1/dvwa/vulnerabilities/xss_r/ to craft a payload that would steal session cookies",
+        "difficulty": "Easy",
+        "category": "Cross-Site Scripting"
+    },
+    {
+        "id": "dvwa-xss-stored",
+        "title": "Stored XSS - Persistent Payload",
+        "description": "Inject a persistent XSS payload into the guestbook at http://127.0.0.1/dvwa/vulnerabilities/xss_s/ that executes JavaScript on page load",
+        "difficulty": "Medium",
+        "category": "Cross-Site Scripting"
+    },
+    {
+        "id": "dvwa-csrf",
+        "title": "CSRF - Password Change Attack",
+        "description": "Craft a CSRF attack at http://127.0.0.1/dvwa/vulnerabilities/csrf/ to change the admin password without authentication",
+        "difficulty": "Medium",
+        "category": "CSRF"
+    },
+    {
+        "id": "dvwa-file-upload",
+        "title": "Insecure File Upload - Web Shell",
+        "description": "Bypass file upload restrictions at http://127.0.0.1/dvwa/vulnerabilities/upload/ to upload a PHP web shell and execute system commands",
+        "difficulty": "Hard",
+        "category": "File Upload"
+    },
+    {
+        "id": "dvwa-command-exec",
+        "title": "Command Injection - System Enumeration",
+        "description": "Exploit the command execution vulnerability at http://127.0.0.1/dvwa/vulnerabilities/exec/ to list all files in the web root directory",
+        "difficulty": "Easy",
+        "category": "Command Injection"
+    },
+    {
+        "id": "dvwa-file-inclusion",
+        "title": "Local File Inclusion - Configuration Disclosure",
+        "description": "Use the file inclusion vulnerability at http://127.0.0.1/dvwa/vulnerabilities/fi/ to read the DVWA configuration file and extract database credentials",
+        "difficulty": "Medium",
+        "category": "File Inclusion"
+    },
+    {
+        "id": "dvwa-brute-force",
+        "title": "Brute Force - Credential Discovery",
+        "description": "Perform a brute force attack on http://127.0.0.1/dvwa/vulnerabilities/brute/ to discover valid admin credentials using common password lists",
+        "difficulty": "Easy",
+        "category": "Authentication"
+    },
+    {
+        "id": "dvwa-auth-bypass",
+        "title": "Authentication Bypass - Database Reset",
+        "description": "Exploit the authentication bypass vulnerability by accessing http://127.0.0.1/dvwa/setup.php to reset the database and restore default credentials",
+        "difficulty": "Hard",
+        "category": "Authentication"
+    }
+]

@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from src.judge.agent import LLMJudgeAgent, TaskEvaluation
@@ -46,6 +47,15 @@ app = FastAPI(
     description="Evaluation service for ethical hacking agent tasks",
     version="1.0.0",
     lifespan=lifespan
+)
+
+# Add CORS middleware to allow frontend access
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

@@ -47,34 +47,23 @@ This project implements:
 ### 1. Installation
 
 ```bash
-# Install dependencies
 pip install -r requirements.txt
-
-# Set up environment variables
 cp .env.example .env
 # Edit .env and add your ANTHROPIC_API_KEY
 ```
 
-### 2. Start the Server
+### 2. Start the Judge Server
 
 ```bash
-python server.py
+uvicorn server:app --host 127.0.0.1 --port 8080
 ```
 
-The server will start on `http://localhost:8000`
+### 3. Use the `/verify` Endpoint
 
-### 3. Test the API
-
-In another terminal:
+Evaluates agent responses and returns a score (0.0-1.0) for RL training:
 
 ```bash
-python test_server.py
-```
-
-Or use curl:
-
-```bash
-curl -X POST http://localhost:8000/verify \
+curl -X POST http://localhost:8080/verify \
   -H "Content-Type: application/json" \
   -d '{
     "task_description": "Create a file at /tmp/test.txt",
@@ -82,9 +71,7 @@ curl -X POST http://localhost:8000/verify \
   }'
 ```
 
-### 4. Create Custom Tools
-
-See [TOOL_CREATION_GUIDE.md](TOOL_CREATION_GUIDE.md) for detailed instructions on creating verification tools.
+**Response**: `{ "score": 0.85, "summary": "Evaluation details..." }`
 
 ## Project Structure
 
@@ -98,51 +85,10 @@ See [TOOL_CREATION_GUIDE.md](TOOL_CREATION_GUIDE.md) for detailed instructions o
 │   └── mcp_server/
 │       ├── server.py         # MCP server implementation
 │       └── tools.py          # Verification tools (includes get_hello)
+├── frontend/                 # Web UI orchestrator
 ├── server.py                 # FastAPI server with /verify endpoint
-├── test_server.py            # Test script for the API
-├── TOOL_CREATION_GUIDE.md    # Guide for creating tools
 ├── requirements.txt          # Python dependencies
 └── .env.example             # Environment variables template
-```
-
-## API Usage
-
-### POST /verify
-
-Evaluate an agent's task completion.
-
-**Request:**
-```json
-{
-  "task_description": "Create a file at /tmp/test.txt with content 'Hello'",
-  "agent_response": "I created the file /tmp/test.txt with the content 'Hello'"
-}
-```
-
-**Response:**
-```json
-{
-  "score": 0.85,
-  "summary": "The agent successfully completed the task. Verification confirmed the file exists and contains the correct content."
-}
-```
-
-### Python Client Example
-
-```python
-import requests
-
-response = requests.post(
-    "http://localhost:8000/verify",
-    json={
-        "task_description": "Your task description here",
-        "agent_response": "Agent's response here"
-    }
-)
-
-result = response.json()
-print(f"Score: {result['score']}")
-print(f"Summary: {result['summary']}")
 ```
 
 ### Programmatic Usage (Without Server)

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethical Hacking Challenge Orchestrator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Ethical Hacking Challenge Orchestrator</h1>
+            <p class="subtitle">Train and evaluate your AI agent on security challenges</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Left Panel: Challenge Selection -->
+            <div class="panel challenge-panel">
+                <h2>📋 Available Challenges</h2>
+                <div id="challengeList" class="challenge-list">
+                    <!-- Challenges will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Middle Panel: Agent Response -->
+            <div class="panel agent-panel">
+                <h2>🤖 Trainee Agent</h2>
+                <div class="selected-challenge">
+                    <h3 id="selectedChallengeTitle">No challenge selected</h3>
+                    <p id="selectedChallengeDesc" class="challenge-description"></p>
+                </div>
+                
+                <button id="runAgentBtn" class="btn btn-primary" disabled>
+                    <span class="btn-icon">▶</span> Run Agent
+                </button>
+
+                <div id="agentOutput" class="output-container">
+                    <div class="output-placeholder">
+                        Select a challenge and click "Run Agent" to start
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Judge Evaluation -->
+            <div class="panel judge-panel">
+                <h2>⚖️ LLM Judge</h2>
+                
+                <button id="evaluateBtn" class="btn btn-secondary" disabled>
+                    <span class="btn-icon">✓</span> Evaluate Response
+                </button>
+
+                <div id="judgeOutput" class="output-container">
+                    <div class="output-placeholder">
+                        Run the agent first, then evaluate the response
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="modal">
+        <div class="modal-content">
+            <div class="loader"></div>
+            <p id="loadingText">Processing...</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
