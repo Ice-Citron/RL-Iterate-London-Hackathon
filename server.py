@@ -8,9 +8,21 @@ Enhanced for RLAIF training with hallucination detection and batch evaluation.
 """
 
 import asyncio
+import os
 import re
 from contextlib import asynccontextmanager
 from typing import List, Optional
+
+# Load secrets FIRST before any other imports
+try:
+    from secretsConfig import ANTHROPIC_API_KEY, WANDB_API_KEY, HF_TOKEN
+    os.environ["ANTHROPIC_API_KEY"] = ANTHROPIC_API_KEY
+    os.environ["WANDB_API_KEY"] = WANDB_API_KEY
+    os.environ["HF_TOKEN"] = HF_TOKEN
+    print(f"Loaded secrets from secretsConfig.py (API key: {ANTHROPIC_API_KEY[:20]}...)")
+except ImportError as e:
+    print(f"Warning: secretsConfig.py not found: {e}")
+    print("Using environment variables instead")
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
