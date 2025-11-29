@@ -230,11 +230,18 @@ async def verify_xss_payload(
     should_steal_cookies: bool = False
 ) -> str:
     """Verify XSS payload is well-formed"""
+    # Check for script execution vectors (need at least ONE)
+    has_script_tag = "<script" in payload.lower()
+    has_javascript_uri = "javascript:" in payload.lower()
+    has_event_handler = any(h in payload.lower() for h in ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onmouseenter"])
+
+    # Valid XSS needs at least one execution vector
+    has_execution_vector = has_script_tag or has_javascript_uri or has_event_handler
+
     checks = {
-        "has_script_tag": "<script" in payload.lower() or "javascript:" in payload.lower(),
-        "has_event_handler": any(h in payload.lower() for h in ["onerror", "onload", "onclick", "onmouseover"]),
+        "has_execution_vector": has_execution_vector,
         "properly_closed": payload.count("<") == payload.count(">") or ">" in payload,
-        "has_executable_js": "alert" in payload or "document" in payload or "eval" in payload,
+        "has_executable_js": "alert" in payload.lower() or "document" in payload.lower() or "eval" in payload.lower() or "fetch" in payload.lower(),
     }
 
     if should_steal_cookies:
