@@ -45,7 +45,7 @@ class SecurityTools:
     async def get_http_client(self):
         if self._http_client is None:
             import httpx
-            self._http_client = httpx.AsyncClient(timeout=30.0)
+            self._http_client = httpx.AsyncClient(timeout=30.0, follow_redirects=True)
         return self._http_client
 
     async def close(self):

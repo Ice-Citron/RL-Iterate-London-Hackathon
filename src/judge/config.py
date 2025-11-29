@@ -25,7 +25,7 @@ class JudgeConfig(BaseModel):
         default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", "")
     )
     model: str = Field(
-        default_factory=lambda: os.getenv("JUDGE_MODEL", "claude-3-5-sonnet-20241022")
+        default_factory=lambda: os.getenv("JUDGE_MODEL", "claude-sonnet-4-20250514")
     )
     max_tokens: int = 4096
     temperature: float = 0.0  # Use 0 for deterministic judging
