@@ -55,7 +55,7 @@ cp .env.example .env
 ### 2. Start the Judge Server
 
 ```bash
-uvicorn server:app --host 127.0.0.1 --port 8080
+uvicorn server:app --host 127.0.0.1 --port 8088
 ```
 
 ### 3. Use the `/verify` Endpoint
@@ -63,7 +63,7 @@ uvicorn server:app --host 127.0.0.1 --port 8080
 Evaluates agent responses and returns a score (0.0-1.0) for RL training:
 
 ```bash
-curl -X POST http://localhost:8080/verify \
+curl -X POST http://localhost:8088/verify \
   -H "Content-Type: application/json" \
   -d '{
     "task_description": "Create a file at /tmp/test.txt",

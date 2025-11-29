@@ -148,4 +148,4 @@ async def verify(request: VerifyRequest) -> VerifyResponse:
         )
 
 # Running the server
-# uvicorn server:app --host 127.0.0.1 --port 8080
+# uvicorn server:app --host 127.0.0.1 --port 8082
