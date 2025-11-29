@@ -1,13 +1,28 @@
 # RL-Iterate-London-Hackathon
 
-This repository consists of an agentic system for conducting ethical cyberattacks for the Reinforcement-Learning Hackathon, with an LLM-judge agent for verification.
+**Unified RLAIF + GRPO training system for ethical white-hat hacking agents.**
 
-## Overview
+This repository implements a complete training pipeline that combines:
+- **CAI Environment**: Security tools for agent execution
+- **Claude MCP Judge**: Evidence-based evaluation with hallucination detection
+- **OpenPipe ART**: GRPO training with vLLM sleep mode
 
-This project implements:
-- **LLM-Judge Agent**: An Anthropic Claude-powered agent that evaluates task completion
-- **MCP Server**: Model Context Protocol server providing verification tools
-- **Verification Tools**: Extensible tools for checking system state and task completion
+## Quick Start (Training)
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+cp .env.example .env  # Add your API keys
+
+# 2. Start the judge server (Terminal 1)
+uvicorn server:app --host 127.0.0.1 --port 8088
+
+# 3. Run integration tests (Terminal 2)
+python test_integration.py
+
+# 4. Start training (on H100)
+python -m src.training.orchestrator --config h100
+```
 
 ## Architecture
 

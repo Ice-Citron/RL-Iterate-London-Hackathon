@@ -9,6 +9,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Load secrets from secretsConfig.py if available
+try:
+    from secretsConfig import ANTHROPIC_API_KEY
+    os.environ.setdefault("ANTHROPIC_API_KEY", ANTHROPIC_API_KEY)
+except ImportError:
+    pass  # Fall back to environment variable
+
 
 class JudgeConfig(BaseModel):
     """Configuration for the LLM-judge agent"""
