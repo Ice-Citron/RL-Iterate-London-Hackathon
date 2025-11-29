@@ -8,7 +8,9 @@ fastapi==0.115.0
 uvicorn==0.32.0
 
 # Training (ART + dependencies)
-art-ai>=0.5.0
+# For CPU/client only: pip install openpipe-art
+# For GPU backend: pip install openpipe-art[backend]
+openpipe-art>=0.5.0
 wandb>=0.16.0
 litellm>=1.30.0
 huggingface_hub>=0.20.0

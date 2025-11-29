@@ -29,8 +29,15 @@ try:
     from art.local import LocalBackend
     HAS_ART = True
 except ImportError:
-    HAS_ART = False
-    print("Warning: ART not installed. Training disabled, test mode only.")
+    try:
+        # Try alternative import path
+        from openpipe import art
+        from openpipe.art.local import LocalBackend
+        HAS_ART = True
+    except ImportError:
+        HAS_ART = False
+        print("Warning: ART not installed. Training disabled, test mode only.")
+        print("Install with: pip install openpipe-art[backend]")
 
 try:
     import wandb
