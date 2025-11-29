@@ -155,14 +155,17 @@ class SecurityTools:
 
             # Return truncated response for context window management
             body = response.text[:2000]
+            # Get first 5 headers as dict
+            headers_dict = dict(list(response.headers.items())[:5])
             return json.dumps({
                 "status_code": response.status_code,
-                "headers": dict(response.headers)[:5],  # Limit headers
+                "headers": headers_dict,
                 "body_preview": body,
                 "body_length": len(response.text)
             })
         except Exception as e:
-            return json.dumps({"error": str(e)})
+            import traceback
+            return json.dumps({"error": str(e), "traceback": traceback.format_exc()})
 
     async def execute_command(self, command: str) -> str:
         """

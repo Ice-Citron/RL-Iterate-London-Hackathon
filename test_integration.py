@@ -173,8 +173,15 @@ async def test_mock_rollout():
             params=None
         )
         result_dict = json.loads(result)
-        print(f"   DVWA reachable: {result_dict.get('status_code') == 200}")
-        print(f"   Response length: {result_dict.get('body_length', 0)} bytes")
+        if "error" in result_dict:
+            print(f"   Error: {result_dict.get('error')}")
+            if "traceback" in result_dict:
+                print(f"   Traceback: {result_dict.get('traceback')[:200]}...")
+        else:
+            print(f"   DVWA reachable: {result_dict.get('status_code') == 200}")
+            print(f"   Status code: {result_dict.get('status_code')}")
+            print(f"   Response length: {result_dict.get('body_length', 0)} bytes")
+            print(f"   Body preview: {result_dict.get('body_preview', '')[:100]}...")
     except Exception as e:
         print(f"   DVWA not reachable (expected if not running): {e}")
 
