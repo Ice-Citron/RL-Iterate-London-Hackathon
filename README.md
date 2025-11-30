@@ -173,6 +173,96 @@ When adding new tools:
 4. Document the tool's purpose and parameters
 5. Test thoroughly before deploying
 
+---
+
+## CAI + vLLM Integration for Reinforcement Learning
+
+In a separate [cai-vllm](https://github.com/Ice-Citron/cai-vllm) fork, we modified the CAI framework to work with vLLM (instead of only API calls) for local model inference and reinforcement learning support.
+
+### Summary of Changes
+
+The original CAI framework was designed to work exclusively with cloud-based API providers (OpenAI, Anthropic, etc.). Our fork adds **vLLM support** to enable:
+1. **Local model inference** - Run models on your own GPU hardware
+2. **RL training compatibility** - Direct access to model weights for fine-tuning
+3. **Zero API costs** - No per-token charges for local inference
+4. **Data privacy** - All inference happens locally
+
+### Key Technical Modifications
+
+#### 1. Provider Detection & Routing (`openai_chatcompletions.py`)
+
+The core change is in the `_fetch_response` method which now detects the `vllm/` prefix and routes requests appropriately:
+
+```python
+elif provider == "vllm" or provider == "openai":
+    # vLLM support - use OpenAI-compatible API
+    kwargs["custom_llm_provider"] = "openai"
+    # Use VLLM_API_BASE if set
+    if not kwargs.get("api_base"):
+        kwargs["api_base"] = get_vllm_api_base()
+    # Strip the vllm/ or openai/ prefix from model name
+    model_without_prefix = "/".join(kwargs["model"].split("/")[1:])
+    kwargs["model"] = model_without_prefix
+    # vLLM needs these params removed for tool calling
+    if not converted_tools:
+        kwargs.pop("tool_choice", None)
+    # Add stop tokens to prevent response repetition (critical fix for loops)
+    stop_tokens = get_vllm_stop_tokens()
+    if stop_tokens:
+        kwargs["stop"] = stop_tokens
+```
+
+**What this does:**
+- Detects `vllm/` or `openai/` prefix in model name
+- Sets `custom_llm_provider` to `"openai"` (vLLM exposes an OpenAI-compatible API)
+- Configures the `api_base` to point to the local vLLM server
+- Strips the provider prefix from the model name
+- Adds stop tokens to prevent infinite response loops
+
+#### 2. Utility Functions (`util.py`)
+
+New helper functions were added to manage vLLM configuration:
+
+```python
+def get_vllm_api_base():
+    """Get the vLLM API base URL from environment variable or default to localhost:8000."""
+    return os.environ.get("VLLM_API_BASE", "http://localhost:8000/v1")
+
+
+def get_vllm_stop_tokens():
+    """
+    Get stop tokens for vLLM to prevent response repetition.
+
+    Returns a list of stop tokens from VLLM_STOP_TOKENS env var (comma-separated),
+    or default tokens for common chat formats.
+    """
+    env_tokens = os.environ.get("VLLM_STOP_TOKENS", "")
+    if env_tokens:
+        return [token.strip() for token in env_tokens.split(",") if token.strip()]
+
+    # Default stop tokens for common chat formats (Qwen, Llama, Mistral, etc.)
+    return ["<|im_start|>", "<|im_end|>", "<|eot_id|>", "</s>"]
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VLLM_API_BASE` | URL of your vLLM server | `http://localhost:8000/v1` |
+| `VLLM_STOP_TOKENS` | Comma-separated stop tokens | Common chat format tokens |
+
+### Usage
+
+```python
+# Instead of using an API provider:
+# model = "anthropic/claude-3-sonnet"
+
+# Use vLLM with local model:
+model = "vllm/Qwen/Qwen2.5-7B-Instruct"
+```
+
+This enables the same CAI agent code to work with local vLLM inference, making it suitable for RL training pipelines where you need direct access to model weights.
+
 ## License
 
 See [LICENSE](LICENSE) file for details.
