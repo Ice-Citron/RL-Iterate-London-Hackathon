@@ -67,11 +67,14 @@ curl -X POST http://localhost:8080/verify \
   -H "Content-Type: application/json" \
   -d '{
     "task_description": "Create a file at /tmp/test.txt",
-    "agent_response": "I created the file successfully"
+    "agent_response": "I created the file successfully",
+    "model_answer": "Optional reference answer for comparison"
   }'
 ```
 
 **Response**: `{ "score": 0.85, "summary": "Evaluation details..." }`
+
+**Note**: The `model_answer` field is optional. When provided, the judge will use it as a reference if objective verification via tools isn't possible. This is useful for tasks where the outcome is difficult to verify programmatically.
 
 ## Project Structure
 

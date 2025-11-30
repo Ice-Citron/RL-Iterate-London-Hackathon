@@ -148,15 +148,22 @@ async function evaluateResponse() {
     evaluateBtn.disabled = true;
     
     try {
+        const requestBody = {
+            task_description: selectedChallenge.description,
+            agent_response: agentResponse
+        };
+        
+        // Include model_answer if available
+        if (selectedChallenge.model_answer) {
+            requestBody.model_answer = selectedChallenge.model_answer;
+        }
+        
         const response = await fetch(`${CONFIG.JUDGE_API}/verify`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                task_description: selectedChallenge.description,
-                agent_response: agentResponse
-            })
+            body: JSON.stringify(requestBody)
         });
         
         if (!response.ok) {
