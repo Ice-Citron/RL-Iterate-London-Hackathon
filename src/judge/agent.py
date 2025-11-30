@@ -122,7 +122,8 @@ class LLMJudgeAgent:
     async def evaluate_task(
         self,
         task_description: str,
-        agent_response: str
+        agent_response: str,
+        model_answer: Optional[str] = None
     ) -> TaskEvaluation:
         """
         Evaluate whether a task was completed successfully based on agent's response.
@@ -130,6 +131,7 @@ class LLMJudgeAgent:
         Args:
             task_description: Description of the task that was assigned
             agent_response: The response/output from the agent being evaluated
+            model_answer: Optional model answer for comparison when objective verification isn't possible
             
         Returns:
             TaskEvaluation with score (0.0-1.0) and summary
@@ -140,7 +142,8 @@ class LLMJudgeAgent:
         # Create the evaluation prompt
         user_prompt = create_evaluation_prompt(
             task_description=task_description,
-            agent_response=agent_response
+            agent_response=agent_response,
+            model_answer=model_answer
         )
         
         # Run the agentic loop with tool use

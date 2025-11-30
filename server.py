@@ -69,6 +69,10 @@ class VerifyRequest(BaseModel):
         ...,
         description="The response/output from the agent being evaluated"
     )
+    model_answer: Optional[str] = Field(
+        None,
+        description="Optional model answer for comparison when objective verification isn't possible"
+    )
 
 
 class VerifyResponse(BaseModel):
@@ -132,7 +136,8 @@ async def verify(request: VerifyRequest) -> VerifyResponse:
         # Evaluate the task
         evaluation: TaskEvaluation = await judge_agent.evaluate_task(
             task_description=request.task_description,
-            agent_response=request.agent_response
+            agent_response=request.agent_response,
+            model_answer=request.model_answer
         )
         
         # Return the evaluation in the required format
