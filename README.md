@@ -2,22 +2,6 @@
 
 This repository consists of an agentic system for conducting ethical cyberattacks for the Reinforcement-Learning Hackathon, with an LLM-judge agent for verification.
 
-## 🎯 Target Environment (DVWA)
-
-**IMPORTANT**: DVWA has been separated from this repository and lives at `~/dvwa-autopentester/`
-
-```bash
-# Start DVWA (from anywhere)
-~/dvwa-autopentester/manage.sh start
-
-# Check status
-~/dvwa-autopentester/manage.sh status
-```
-
-- **Web Interface**: http://localhost:4280
-- **MariaDB** (for LLM Judge): localhost:3306
-- See `~/dvwa-autopentester/README.md` for full documentation
-
 ## Overview
 
 This project implements:
