@@ -22,22 +22,26 @@ import asyncio
 from typing import Optional
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+
+# Load environment variables FIRST
+load_dotenv()
+
+# Create logs directory BEFORE importing CAI agents
+Path("logs").mkdir(exist_ok=True)
 
 # Import CAI components
 from cai.sdk.agents import Runner, Agent, OpenAIChatCompletionsModel, set_tracing_disabled
 from openai import AsyncOpenAI
 
-# Import CAI pre-built agents
-from cai.agents.bug_bounter import bug_bounter_agent
-from cai.agents.red_teamer import redteam_agent
-
-# Load environment variables
-load_dotenv()
-
 # Disable tracing for performance (optional)
 set_tracing_disabled(True)
+
+# Import CAI pre-built agents (AFTER creating logs directory)
+from cai.agents.bug_bounter import bug_bounter_agent
+from cai.agents.red_teamer import redteam_agent
 
 # Setup agent workspace
 WORKSPACE_DIR = Path(__file__).parent / "agent_workspace"
@@ -70,6 +74,15 @@ app = FastAPI(
     title="CAI Task Execution API",
     description="Execute cybersecurity tasks using CAI agents",
     version="1.0.0"
+)
+
+# Add CORS middleware to allow requests from frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins (for development)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
 )
 
 # Request/Response models
@@ -172,21 +185,16 @@ Use Python's os.chdir() to work in this directory, or use absolute paths.
 """
         }
 
-        # Change to workspace directory before running agent
-        original_cwd = os.getcwd()
-        os.chdir(WORKSPACE_DIR)
+        # NOTE: Don't change directory - let agent work with absolute paths
+        # The workspace_dir is provided in context for the agent to use
 
-        try:
-            # Run the agent with the task and workspace context
-            result = await Runner.run(
-                starting_agent=agent,
-                input=request.task_description,
-                context=workspace_context,
-                max_turns=request.max_turns
-            )
-        finally:
-            # Always restore original directory
-            os.chdir(original_cwd)
+        # Run the agent with the task and workspace context
+        result = await Runner.run(
+            starting_agent=agent,
+            input=request.task_description,
+            context=workspace_context,
+            max_turns=request.max_turns
+        )
 
         # Extract the summary from the result
         final_output = result.final_output
@@ -255,9 +263,8 @@ Use Python's os.chdir() to work in this directory, or use absolute paths.
 """
         }
 
-        # Change to workspace directory before running agent
-        original_cwd = os.getcwd()
-        os.chdir(WORKSPACE_DIR)
+        # NOTE: Don't change directory - let agent work with absolute paths
+        # The workspace_dir is provided in context for the agent to use
 
         try:
             # Stream events
@@ -291,9 +298,6 @@ Use Python's os.chdir() to work in this directory, or use absolute paths.
                 "error": str(e)
             }
             yield f"data: {json.dumps(error_data)}\n\n"
-        finally:
-            # Always restore original directory
-            os.chdir(original_cwd)
 
     return StreamingResponse(
         event_generator(),
