@@ -32,6 +32,8 @@ services:
       - MYSQL_DATABASE=dvwa
       - MYSQL_USER=dvwa
       - MYSQL_PASSWORD=p@ssw0rd
+    ports:
+      - 127.0.0.1:43306:3306
     volumes:
       - dvwa:/var/lib/mysql
     networks:

@@ -23,10 +23,12 @@ class JudgeConfig(BaseModel):
     max_tokens: int = 4096
     temperature: float = 0.0  # Use 0 for deterministic judging
     
-    # MCP server settings
-    mcp_server_command: str = Field(
-        default="python -m src.mcp_server.server",
-        description="Command to start the MCP server"
+    # Tool server settings (HTTP-based, runs separately)
+    tool_server_host: str = Field(
+        default_factory=lambda: os.getenv("TOOL_SERVER_HOST", "127.0.0.1")
+    )
+    tool_server_port: int = Field(
+        default_factory=lambda: int(os.getenv("TOOL_SERVER_PORT", "8081"))
     )
     
     # Judge behavior settings

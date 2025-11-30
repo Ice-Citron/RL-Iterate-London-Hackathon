@@ -7,6 +7,7 @@ that the LLM-judge agent can use to verify task completion.
 
 import asyncio
 import json
+import sys
 from typing import Any, Dict, List, Optional
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -64,18 +65,42 @@ class VerificationMCPServer:
     
     async def run(self):
         """Run the MCP server using stdio transport"""
-        async with stdio_server() as (read_stream, write_stream):
-            await self.server.run(
-                read_stream,
-                write_stream,
-                self.server.create_initialization_options()
-            )
+        # Ensure stderr is available for logging
+        sys.stderr.write("MCP server starting...\n")
+        sys.stderr.flush()
+        
+        try:
+            async with stdio_server() as (read_stream, write_stream):
+                sys.stderr.write("MCP server stdio initialized\n")
+                sys.stderr.flush()
+                
+                init_options = self.server.create_initialization_options()
+                sys.stderr.write(f"MCP server running with {len(AVAILABLE_TOOLS)} tools\n")
+                sys.stderr.flush()
+                
+                await self.server.run(
+                    read_stream,
+                    write_stream,
+                    init_options
+                )
+        except Exception as e:
+            sys.stderr.write(f"MCP server error: {e}\n")
+            sys.stderr.flush()
+            raise
 
 
 async def main():
     """Main entry point for the MCP server"""
-    server = VerificationMCPServer()
-    await server.run()
+    try:
+        server = VerificationMCPServer()
+        await server.run()
+    except KeyboardInterrupt:
+        sys.stderr.write("MCP server stopped by user\n")
+        sys.stderr.flush()
+    except Exception as e:
+        sys.stderr.write(f"MCP server fatal error: {e}\n")
+        sys.stderr.flush()
+        raise
 
 
 if __name__ == "__main__":

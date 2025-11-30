@@ -9,6 +9,11 @@ import os
 from typing import Any, Dict, List, Optional
 import asyncio
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+
+# Load environment variables from .env at import time so get_db_connector
+# sees them before calling os.getenv.
+load_dotenv()
 
 try:
     import aiomysql
@@ -41,7 +46,6 @@ class DVWADatabaseConnector:
         """
         if not MYSQL_AVAILABLE:
             raise ImportError("aiomysql not available. Install with: pip install aiomysql")
-
         self.config = {
             "host": host,
             "port": port,
@@ -221,10 +225,11 @@ def get_db_connector(
 
     if _db_connector is None:
         # Use environment variables with fallbacks
-        _host = host or os.getenv("DVWA_MYSQL_HOST", "127.0.0.1")
-        _port = int(port or os.getenv("DVWA_MYSQL_PORT", "3306"))
-        _user = user or os.getenv("DVWA_MYSQL_USER", "dvwa")
-        _password = password or os.getenv("DVWA_MYSQL_PASSWORD", "dvwa_password")
+        _host = host or os.getenv("DVWA_DB_HOST", "127.0.0.1")
+        _port = int(port or os.getenv("DVWA_DB_PORT", "3306"))
+        _user = user or os.getenv("DVWA_DB_USER", "dvwa")
+        _password = password or os.getenv("DVWA_DB_PASSWORD", "dvwa_password")
+        print("PORT: ", _port)
 
         _db_connector = DVWADatabaseConnector(
             host=_host,

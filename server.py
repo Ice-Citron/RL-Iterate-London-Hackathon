@@ -26,19 +26,29 @@ async def lifespan(app: FastAPI):
     """Manage the lifecycle of the judge agent"""
     global judge_agent
     
-    # Startup: Initialize and connect the judge agent
+    # Startup: Initialize the judge agent
     print("Starting LLM-Judge Agent...")
     config = JudgeConfig()
     judge_agent = LLMJudgeAgent(config)
-    await judge_agent.connect_mcp()
-    print("LLM-Judge Agent ready!")
+    
+    # Try to connect to tool server
+    try:
+        await judge_agent.connect_tool_server()
+        print("LLM-Judge Agent ready with verification tools!")
+    except Exception as e:
+        print(f"⚠️  Tool server connection failed: {e}")
+        print("LLM-Judge Agent running without tools (evaluation only mode)")
+        print("Start the tool server: python -m src.mcp_server.http_server")
     
     yield
     
     # Shutdown: Disconnect the judge agent
     print("Shutting down LLM-Judge Agent...")
     if judge_agent:
-        await judge_agent.disconnect_mcp()
+        try:
+            await judge_agent.disconnect_tool_server()
+        except:
+            pass
     print("LLM-Judge Agent stopped.")
 
 
@@ -100,7 +110,7 @@ async def health():
     """Detailed health check"""
     return {
         "status": "healthy",
-        "judge_connected": judge_agent is not None and judge_agent.mcp_session is not None,
+        "tool_server_connected": judge_agent is not None and judge_agent._connected,
         "available_tools": [t["name"] for t in judge_agent.available_tools] if judge_agent else []
     }
 

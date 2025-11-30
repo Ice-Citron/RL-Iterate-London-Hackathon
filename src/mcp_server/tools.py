@@ -37,22 +37,6 @@ class VerificationResult(BaseModel):
     details: Dict[str, Any] = Field(default_factory=dict)
 
 
-# ============================================================================
-# EXAMPLE TOOL: get_hello
-# This is a simple example tool that returns "hello"
-# ============================================================================
-
-GET_HELLO_TOOL = ToolDefinition(
-    name="get_hello",
-    description="Returns a secret",
-    inputSchema={"type": "object", "properties": {}, "required": []},
-)
-
-
-async def get_hello() -> str:
-    return "docsoc"
-
-
 # ---------------------------------------------------------------------------
 # DVWA helper utilities (appended without modifying existing structure above)
 # ---------------------------------------------------------------------------
@@ -131,13 +115,21 @@ def _is_private_or_local_host(host: str) -> bool:
 
 
 def _validate_local_base_url(base_url: str) -> str:
+    """
+    Validate and normalize the base URL.
+    
+    Note: The localhost/private IP restriction has been removed to allow
+    connecting to remote DVWA instances (e.g., for hackathon setups).
+    """
     normalized = _normalize_base_url(base_url)
-    parsed = urlparse(normalized)
-    host_part = parsed.netloc.split("@")[-1]
-    if not _is_private_or_local_host(host_part):
-        raise DVWAConfigError(
-            "base_url must point to localhost or a private IP address."
-        )
+    # Validation removed - allow any valid HTTP URL
+    # If you need to restrict to local only, uncomment below:
+    # parsed = urlparse(normalized)
+    # host_part = parsed.netloc.split("@")[-1]
+    # if not _is_private_or_local_host(host_part):
+    #     raise DVWAConfigError(
+    #         "base_url must point to localhost or a private IP address."
+    #     )
     return normalized
 
 
@@ -725,9 +717,7 @@ DVWA_AUTH_BYPASS_TOOL = ToolDefinition(
 # Tool Registry
 # ============================================================================
 
-AVAILABLE_TOOLS: List[ToolDefinition] = [
-    GET_HELLO_TOOL,
-]
+AVAILABLE_TOOLS: List[ToolDefinition] = []
 
 # Append DVWA-specific tools while preserving the existing structure.
 AVAILABLE_TOOLS += [
@@ -755,9 +745,7 @@ except ImportError as e:
 
 ToolExecutor = Callable[..., Awaitable[Any]]
 
-TOOL_IMPLEMENTATIONS: Dict[str, ToolExecutor] = {
-    "get_hello": get_hello,
-}
+TOOL_IMPLEMENTATIONS: Dict[str, ToolExecutor] = {}
 
 TOOL_IMPLEMENTATIONS.update(
     {
