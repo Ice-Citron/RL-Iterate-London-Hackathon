@@ -1,0 +1,53 @@
+services:
+  # DVWA Web Application
+  dvwa:
+    image: vulnerables/web-dvwa:latest
+    platform: linux/amd64  # Force AMD64 for Apple Silicon compatibility
+    container_name: dvwa
+    ports:
+      - "80:80"      # DVWA web interface
+    environment:
+      - DB_SERVER=dvwa-mysql
+      - DB_DATABASE=dvwa
+      - DB_USERNAME=dvwa
+      - DB_PASSWORD=dvwa_password
+      - RECAPTCHA_PRIV_KEY=
+      - RECAPTCHA_PUB_KEY=
+    depends_on:
+      dvwa-mysql:
+        condition: service_healthy
+    networks:
+      - dvwa-network
+    restart: unless-stopped
+
+  # MySQL Database for DVWA
+  dvwa-mysql:
+    image: mysql:5.7
+    platform: linux/amd64  # Force AMD64 for Apple Silicon compatibility
+    container_name: dvwa-mysql
+    ports:
+      - "3307:3306"  # Expose on 3307 to avoid conflict with local MySQL
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=dvwa_password
+    volumes:
+      - dvwa-mysql-data:/var/lib/mysql
+      - ./dvwa-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - dvwa-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+networks:
+  dvwa-network:
+    driver: bridge
+
+volumes:
+  dvwa-mysql-data:
+    driver: local

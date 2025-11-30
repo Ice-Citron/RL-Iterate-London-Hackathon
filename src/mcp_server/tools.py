@@ -743,6 +743,15 @@ AVAILABLE_TOOLS += [
     DVWA_AUTH_BYPASS_TOOL,
 ]
 
+# Import and register enhanced tools with ground truth validation
+try:
+    from .enhanced_tools import ENHANCED_TOOLS, ENHANCED_TOOL_IMPLEMENTATIONS
+    AVAILABLE_TOOLS += ENHANCED_TOOLS
+    print(f"✓ Loaded {len(ENHANCED_TOOLS)} enhanced verification tools with ground truth validation")
+except ImportError as e:
+    print(f"⚠ Enhanced tools not loaded: {e}")
+    ENHANCED_TOOL_IMPLEMENTATIONS = {}
+
 
 ToolExecutor = Callable[..., Awaitable[Any]]
 
@@ -764,6 +773,9 @@ TOOL_IMPLEMENTATIONS.update(
         "dvwa_auth_bypass_check": dvwa_auth_bypass_check,
     }
 )
+
+# Add enhanced tool implementations
+TOOL_IMPLEMENTATIONS.update(ENHANCED_TOOL_IMPLEMENTATIONS)
 
 
 async def execute_tool(tool_name: str, arguments: Dict[str, Any]) -> str:
