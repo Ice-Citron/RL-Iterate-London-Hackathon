@@ -216,6 +216,134 @@ async def test_training_config():
     print("\n Training Config: Test complete!")
 
 
+async def test_challenges():
+    """Test challenge dataset"""
+    print("\n" + "=" * 50)
+    print("TEST 5: Challenge Dataset")
+    print("=" * 50)
+
+    from src.training.challenges import (
+        get_challenges,
+        get_training_curriculum,
+        ALL_CHALLENGES,
+        CHALLENGES_BY_CATEGORY,
+        CHALLENGES_BY_DIFFICULTY,
+    )
+
+    print(f"\n5.1 Total challenges: {len(ALL_CHALLENGES)}")
+
+    print("\n5.2 By category:")
+    for cat, challenges in CHALLENGES_BY_CATEGORY.items():
+        print(f"   {cat}: {len(challenges)} challenges")
+
+    print("\n5.3 By difficulty:")
+    for diff, challenges in CHALLENGES_BY_DIFFICULTY.items():
+        print(f"   {diff}: {len(challenges)} challenges")
+
+    print("\n5.4 Curriculum order:")
+    curriculum = get_training_curriculum()
+    for i, c in enumerate(curriculum[:5]):
+        print(f"   {i+1}. [{c['difficulty']}] {c['category']}: {c['id']}")
+    if len(curriculum) > 5:
+        print(f"   ... and {len(curriculum) - 5} more")
+
+    print("\n Challenges: Test complete!")
+
+
+async def test_cai_tools():
+    """Test CAI integration tools"""
+    print("\n" + "=" * 50)
+    print("TEST 6: CAI Security Tools")
+    print("=" * 50)
+
+    from src.training.cai_integration import CAISecurityTools
+
+    tools = CAISecurityTools(dvwa_url="http://31.97.117.123")
+
+    print("\n6.1 Tool definitions:")
+    tool_defs = tools.get_openai_tools()
+    for t in tool_defs:
+        print(f"   - {t['function']['name']}: {t['function']['description'][:50]}...")
+
+    print("\n6.2 Testing http_get (to DVWA)...")
+    try:
+        result = await tools.execute_tool("http_get", {"path": "/"})
+        result_dict = json.loads(result)
+        if "error" in result_dict:
+            print(f"   Error: {result_dict['error'][:100]}")
+        else:
+            print(f"   Status: {result_dict.get('status_code')}")
+            print(f"   Body length: {len(result_dict.get('body', ''))}")
+    except Exception as e:
+        print(f"   Exception: {e}")
+
+    await tools.close()
+    print("\n CAI Tools: Test complete!")
+
+
+async def test_wandb_logger():
+    """Test W&B logging utilities"""
+    print("\n" + "=" * 50)
+    print("TEST 7: W&B Logger")
+    print("=" * 50)
+
+    from src.training.wandb_logger import (
+        WandBLogger,
+        StepMetrics,
+        compute_step_metrics,
+    )
+
+    print("\n7.1 Computing step metrics from sample data...")
+    trajectories = [
+        {"reward": 0.8, "tool_calls": 5, "success": True, "hallucination": False, "category": "sql_injection"},
+        {"reward": 0.2, "tool_calls": 15, "success": False, "hallucination": False, "category": "xss"},
+        {"reward": -0.5, "tool_calls": 30, "success": False, "hallucination": True, "category": "sql_injection"},
+    ]
+
+    metrics = compute_step_metrics(trajectories, step=1, epoch=0)
+    print(f"   Avg reward: {metrics.avg_reward:.3f}")
+    print(f"   Success rate: {metrics.success_rate:.2%}")
+    print(f"   Hallucination rate: {metrics.hallucination_rate:.2%}")
+    print(f"   Category rewards: {metrics.category_rewards}")
+
+    print("\n W&B Logger: Test complete!")
+
+
+async def test_hf_checkpoints():
+    """Test HuggingFace checkpoint manager"""
+    print("\n" + "=" * 50)
+    print("TEST 8: HuggingFace Checkpoints")
+    print("=" * 50)
+
+    from src.training.hf_checkpoints import HFCheckpointManager
+
+    print("\n8.1 Creating checkpoint manager...")
+    manager = HFCheckpointManager(
+        repo_id="iteratehack/cyberattack-rlaif-grpo-mcp",
+        local_dir="./test_checkpoints",
+    )
+    print(f"   Repo: {manager.repo_id}")
+    print(f"   Local dir: {manager.local_dir}")
+
+    print("\n8.2 Saving test checkpoint...")
+    checkpoint_path = manager.save_checkpoint(
+        step=0,
+        metrics={"avg_reward": 0.5, "success_rate": 0.6},
+    )
+    print(f"   Saved to: {checkpoint_path}")
+
+    print("\n8.3 Listing checkpoints...")
+    checkpoints = manager.list_checkpoints()
+    for cp in checkpoints:
+        print(f"   - {cp['name']}: step={cp['step']}")
+
+    # Cleanup
+    import shutil
+    shutil.rmtree("./test_checkpoints", ignore_errors=True)
+
+    print("\n HF Checkpoints: Test complete!")
+
+
 async def main():
     """Run all integration tests"""
     print("\n" + "=" * 60)
@@ -233,6 +361,18 @@ async def main():
 
     # Test 4: Config
     await test_training_config()
+
+    # Test 5: Challenge Dataset
+    await test_challenges()
+
+    # Test 6: CAI Security Tools
+    await test_cai_tools()
+
+    # Test 7: W&B Logger
+    await test_wandb_logger()
+
+    # Test 8: HuggingFace Checkpoints
+    await test_hf_checkpoints()
 
     print("\n" + "=" * 60)
     print("ALL TESTS COMPLETE")
