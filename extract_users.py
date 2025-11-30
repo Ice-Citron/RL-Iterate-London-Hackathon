@@ -1,60 +1,55 @@
 
 import requests
 import re
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
-url_base = "http://31.97.117.123"
+url = "http://31.97.117.123/"
 session = requests.Session()
 
-# Login
-login_url = f"{url_base}/login.php"
-response = session.get(login_url, verify=False)
-token_match = re.search(r"name='user_token'\s+value='([^']+)'", response.text)
-user_token = token_match.group(1)
+# Login first
+response = session.get(f"{url}login.php")
+token_match = re.search(r"user_token'\s+value='([a-f0-9]+)'", response.text)
+csrf_token = token_match.group(1)
 
-payload = {
+login_data = {
     "username": "admin",
     "password": "password",
-    "user_token": user_token,
+    "user_token": csrf_token,
     "Login": "Login"
 }
 
-response = session.post(login_url, data=payload, verify=False, allow_redirects=True)
-print("[+] Logged in successfully\n")
+session.post(f"{url}login.php", data=login_data)
 
-# Test SQL injection to find other user IDs
-sqli_url = f"{url_base}/vulnerabilities/sqli/"
+# Now explore the application - check for user injection or admin panels
+pages_to_check = [
+    "/index.php",
+    "/vulnerabilities/sqli/",
+    "/vulnerabilities/sqli_blind/",
+    "/vulnerabilities/user_info.php",
+    "/admin/",
+    "/user_info.php",
+]
 
-# Try to extract data from users table with different IDs
-print("[*] Extracting user data from database:\n")
-users_data = []
+print("[*] Checking for accessible user information pages...")
+for page in pages_to_check:
+    response = session.get(f"{url}{page}")
+    if response.status_code == 200:
+        print(f"[+] Found accessible page: {page}")
+        if "user" in response.text.lower() or "name" in response.text.lower() or "password" in response.text.lower():
+            print(f"    Contains user-related data")
+            print(f"    Response length: {len(response.text)} bytes")
 
-# Let's try IDs 1-10 first
-for user_id in range(1, 11):
-    response = session.get(sqli_url, params={"id": str(user_id), "Submit": "Submit"}, verify=False)
-    
-    # Extract user info
-    id_match = re.search(r'ID: (\d+)', response.text)
-    fname_match = re.search(r'First name: ([^<\n]+)', response.text)
-    sname_match = re.search(r'Surname: ([^<\n]+)', response.text)
-    
-    if id_match:
-        user_id_val = id_match.group(1)
-        fname = fname_match.group(1) if fname_match else "N/A"
-        sname = sname_match.group(1) if sname_match else "N/A"
-        
-        print(f"[+] ID: {user_id_val}, First name: {fname}, Surname: {sname}")
-        users_data.append({
-            "id": user_id_val,
-            "fname": fname,
-            "sname": sname
-        })
-    else:
-        # No valid data for this ID
-        pass
+# Also check for common user listing endpoints
+print("\n[*] Checking for user listing pages...")
+test_pages = [
+    "/users.php",
+    "/user_list.php",
+    "/members.php",
+    "/admin/users.php",
+    "/admin/members.php",
+]
 
-print(f"\n[*] Found {len(users_data)} users")
-print("\n[*] Now trying to extract password hashes using UNION-based SQLi...")
+for page in test_pages:
+    response = session.get(f"{url}{page}")
+    if response.status_code == 200:
+        print(f"[+] Found: {page}")
 

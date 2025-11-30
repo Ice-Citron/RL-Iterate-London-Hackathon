@@ -276,18 +276,71 @@ Use Python's os.chdir() to work in this directory, or use absolute paths.
             )
 
             async for event in result.stream_events():
-                # Convert event to JSON and send
-                event_data = {
-                    "type": event.__class__.__name__,
-                    "data": str(event)
-                }
+                event_type = event.__class__.__name__
+                event_data = {"type": event_type}
+
+                # Parse different event types for better frontend display
+                if event_type == "RawResponsesStreamEvent":
+                    # Streaming text response
+                    if hasattr(event, 'data') and hasattr(event.data, 'delta'):
+                        event_data["content"] = event.data.delta
+                        event_data["display_type"] = "text_delta"
+                elif event_type == "RunItemStreamEvent":
+                    # Tool calls and results
+                    if hasattr(event, 'item'):
+                        item = event.item
+                        item_type = item.__class__.__name__
+                        event_data["item_type"] = item_type
+
+                        if item_type == "ToolCallItem":
+                            event_data["display_type"] = "tool_call"
+                            # Try to extract tool name from raw_item.function.name (OpenAI format)
+                            tool_name = None
+                            if hasattr(item, 'raw_item') and item.raw_item:
+                                raw = item.raw_item
+                                if hasattr(raw, 'function') and raw.function:
+                                    tool_name = getattr(raw.function, 'name', None)
+                                if not tool_name:
+                                    tool_name = getattr(raw, 'name', None)
+                            if not tool_name:
+                                tool_name = getattr(item, 'name', None) or getattr(item, 'tool_name', None)
+                            event_data["tool_name"] = tool_name or 'Tool'
+                            # Extract arguments
+                            tool_args = None
+                            if hasattr(item, 'raw_item') and item.raw_item:
+                                raw = item.raw_item
+                                if hasattr(raw, 'function') and raw.function:
+                                    tool_args = getattr(raw.function, 'arguments', None)
+                                if not tool_args:
+                                    tool_args = getattr(raw, 'arguments', None)
+                            if not tool_args:
+                                tool_args = getattr(item, 'arguments', None)
+                            event_data["tool_args"] = str(tool_args or '')
+                        elif item_type == "ToolCallOutputItem":
+                            event_data["display_type"] = "tool_output"
+                            event_data["output"] = str(getattr(item, 'output', ''))[:2000]  # Limit output size
+                        elif item_type == "MessageOutputItem":
+                            event_data["display_type"] = "message"
+                            if hasattr(item, 'raw_item') and hasattr(item.raw_item, 'content'):
+                                content = item.raw_item.content
+                                if isinstance(content, list) and len(content) > 0:
+                                    event_data["content"] = str(content[0].text if hasattr(content[0], 'text') else content[0])
+                                else:
+                                    event_data["content"] = str(content)
+                else:
+                    # Generic event
+                    event_data["display_type"] = "info"
+                    event_data["raw"] = str(event)[:500]
+
                 yield f"data: {json.dumps(event_data)}\n\n"
                 await asyncio.sleep(0.01)  # Small delay for smooth streaming
 
             # Send final result
+            final_output = result.final_output
             final_data = {
                 "type": "final",
-                "summary": str(result.final_output),
+                "display_type": "final",
+                "summary": str(final_output) if final_output else "Task completed",
                 "success": True
             }
             yield f"data: {json.dumps(final_data)}\n\n"
@@ -295,13 +348,19 @@ Use Python's os.chdir() to work in this directory, or use absolute paths.
         except Exception as e:
             error_data = {
                 "type": "error",
+                "display_type": "error",
                 "error": str(e)
             }
             yield f"data: {json.dumps(error_data)}\n\n"
 
     return StreamingResponse(
         event_generator(),
-        media_type="text/event-stream"
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
     )
 
 if __name__ == "__main__":
