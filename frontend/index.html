@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ethical Hacking Challenge Orchestrator</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -25,16 +28,12 @@
             <!-- Middle Panel: Agent Response -->
             <div class="panel agent-panel">
                 <h2>🤖 Trainee Agent</h2>
-                <div class="selected-challenge">
-                    <h3 id="selectedChallengeTitle">No challenge selected</h3>
-                    <p id="selectedChallengeDesc" class="challenge-description"></p>
-                </div>
-                
+
                 <button id="runAgentBtn" class="btn btn-primary" disabled>
                     <span class="btn-icon">▶</span> Run Agent
                 </button>
 
-                <div id="agentOutput" class="output-container">
+                <div id="agentOutput" class="output-container-large">
                     <div class="output-placeholder">
                         Select a challenge and click "Run Agent" to start
                     </div>
@@ -66,6 +65,16 @@
         </div>
     </div>
 
+    <!-- Prism.js scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

